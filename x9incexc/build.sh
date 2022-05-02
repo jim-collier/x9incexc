@@ -3,6 +3,7 @@
 ##	Purpose: Quick and dirty build script until 'redo' build system implemented.
 ##	History:
 ##		- 20200927 JC: Created.
+##		- 20220501 JC: Updated to work in updated project environment as a real project.
 ##	Notes:
 ##		- fHook_Build() and fHook_PostBuild(), while they exist in this script, are intended to live by themselves and used thusly:
 ##			x9go-build  ## This script
@@ -23,7 +24,7 @@ function fHook_Build(){
 #	declare -r GOOS=linux
 #	declare -r GOARCH=amd64
 	declare -r CGO_ENABLED=1
-	
+
 	## Go environment variables: CGo compiler flags
 #	declare CGO_CFLAGS=""
 #	CGO_CFLAGS="${CGO_CFLAGS} "
@@ -57,7 +58,7 @@ function fHook_Build(){
 	goTags_Sqlite3="${goTags_Sqlite3} sqlite_omit_load_extension"  #..................: Solves a Go problem related to static linking.
 	goTags_Sqlite3="${goTags_Sqlite3} sqlite_foreign_keys=1"  #.......................: 1=Enable foreign key constraints by defualt. (0 is default only for backward compatibility.)
 #	goTags_Sqlite3="${goTags_Sqlite3} sqlite_fts5"  #.................................: Version 5 of the full-text search engine (fts5) is added to the build
-#	goTags_Sqlite3="${goTags_Sqlite3} sqlite_json  #..................................: 
+#	goTags_Sqlite3="${goTags_Sqlite3} sqlite_json  #..................................:
 	goTags_Sqlite3="${goTags_Sqlite3} sqlite_icu"  #..................................: Unicode
 	goTags_Sqlite3="$(fStrNormalize_byecho "${goTags_Sqlite3}")"  #...................: Normalize string
 
@@ -186,6 +187,8 @@ function fMain(){
 
 	## Args
 	local -r version="$1"
+
+	cd "$(dirname "${0}")"
 
 	## Validate
 	if [[   -z "$(which basename 2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'basename'"; fi

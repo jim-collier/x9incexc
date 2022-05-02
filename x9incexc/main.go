@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // The underscore means to import it only for its side-effects. https://stackoverflow.com/questions/21220077/what-does-an-underscore-in-front-of-an-import-statement-mean
 )
 
 //import "github.com/alexflint/go-arg"
