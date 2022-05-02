@@ -191,13 +191,14 @@ function fMain(){
 	cd "$(dirname "${0}")"
 
 	## Validate
-	if [[   -z "$(which basename 2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'basename'"; fi
-	if [[   -z "$(which dirname  2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'dirname'";  fi
-	if [[   -z "$(which pwd      2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'pwd'";      fi
-	if [[   -z "$(which go       2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'go'";       fi
-	if [[   -z "$(which upx      2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'upx'";      fi
-	if [[ ! -f "main.go"                               ]]; then fThrowError "Not found: 'main.go'";          fi
-	if [[   -z "${version}"                            ]]; then fThrowError "No version specified.";         fi
+	if [[   -z "$(which basename 2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'basename'";          fi
+	if [[   -z "$(which dirname  2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'dirname'";           fi
+	if [[   -z "$(which pwd      2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'pwd'";               fi
+	if [[   -z "$(which go       2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'go'";                fi
+	if [[   -z "$(which golint   2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'golint'";            fi
+	if [[   -z "$(which upx      2>/dev/null || true)" ]]; then fThrowError "Not found in path: 'upx'";               fi
+	if [[ ! -f "main.go"                               ]]; then fThrowError "Not found: 'main.go'";                   fi
+	if [[   -z "${version}"                            ]]; then fThrowError "No version specified (e.g. \"1.0.1\".)"; fi
 
 	## Constants
 	local -r exeName="$(basename "$(pwd)")"
