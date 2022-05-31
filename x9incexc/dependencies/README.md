@@ -9,4 +9,8 @@ This folder contains one or more archives, of dependencies that existed at the t
 
 Note that "system.7z" is built automatically by 'build.sh'.
 
+<<<<<<< Updated upstream
 The original go binaries used to build this should be in here too.
+=======
+The original go binaries used to build this should be in here too.
+>>>>>>> Stashed changes
