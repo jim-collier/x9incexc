@@ -129,3 +129,125 @@ Static linking
 		https://stackoverflow.com/a/27280031
 		https://github.com/golang/go/wiki/GcToolchainTricks
 		https://github.com/shadowmint/go-static-linking
+
+Design notes from Rsyncy [20190702]:
+
+	```
+	##    Notes:
+	##        - All paths are forward-slash, even for Windows.
+	##        - Nesting indicates scope (like, say, Python).
+	##            - Nested settings and commands revert to previous once scope disappears.
+	##        - Whitespace outside of quotes is generally ignored, except for beginning   indentation (like, say, Python).
+	##            - Blank lines are only commented out here because my .md editor complains   bout them within code blocks.
+	##        - Command names and settings are flexible. E.g.:
+	##            - "include" and "incl" are equivalent.
+	##            - Boolean settings: y|yes|t|true|1 are all equal. (Similarly with values   or "false".)
+	##            - To turn a setting off: "" [empty], null, off, false, no, n, 0.
+	##            - Setting values can be in quotes or not (unless a space is needed, then   rap value in quotes).
+	##            - File size definitions:
+	##                - Minimum size and name is the Byte, e.g.: 100 [bytes], 2b [Bytes], 10B,  20gb, 1Tib, etc.
+	##                - "MB"  = 1000 Bytes (10^3)
+	##                - "MiB" = 1024 Bytes (2^10)
+	##        - Since parameter substitution isn't done, all regex grouping is converted to   on-capturing, for speed [i.e. "(?:...)"].
+	##            - To preserve explicit "(" and ")" for regex matching, escape with "\".
+	##        - Don't worry about doubling up on path separators, multiples will be cleaned   p.
+	##        - Macros:
+	##            - Once defined, use via case-insensitive format $MacroName
+	##                - To use "$" in a regex, you have to escape it, like "\$"
+	##    History:
+	##        - 20190703: Created.
+
+	## Macros (any other files included with --rules-from-file after this, inherits [and   an override or clear] these
+	macro ANYTHING                 = ".*"
+	macro DOT                      = "\."
+	macro FILEORFOLDER             = "[^\/]+"
+	macro FILE                     = "$FILEORFOLDER"
+	macro FOLDER                   = "$FILEORFOLDER"
+	macro DELIMITER                = "[^a-z0-9\/]"
+	macro DELIMITERorSLASH         = "$DELIMITER|\/"
+	macro WORDBOUNDARY             = "(^|$|\/|[^a-z0-9]+)"
+	macro EolOrShashAndBelow       = "(\$|\/.*)"
+	macro 🙃                        = "$EolOrShashAndBelow"
+	macro FSROOT                   = "(/|[A-Z]:/)"
+	macro 📁                        = $FILEORFOLDER
+	macro 📜                        = $FILEORFOLDER
+	macro •                        = $DOT
+	macro ∙                        = $DOT"
+	macro ♾️                        = $ANYTHING
+	macro 🌟                        = $ANYTHING
+	macro ║                        = $WORDBOUNDARY
+	macro ▶                        = ^
+	macro ◀                        = $
+	macro VFSROOT                  = "($FSROOT|($🌟/mnt/($📁|(usb|firewire|di?sk|dri?ve?|part[a-z0-9]*|[a-z]+fs)/$📁)))"
+	macro ALLUSERSHOME             = "$FSROOT/(home|Users|Documents and Settings)"
+	macro VALLUSERSHOME            = "$VFSROOT/(home|Users|Documents and Settings)"
+	macro USERHOME                 = "$ALLUSERSHOME/📁
+	macro VUSERHOME                = "$VALLUSERSHOME$DELIMITERorSLASH$📁
+	macro DONTBACKUP               = "$WORDBOUNDARY(don('?)t|do$DELIMITER?not|defer|delay)$DELIMITER*backup(s?)$WORDBOUNDARY"
+	macro DEFERBACKUP              = "$WORDBOUNDARY(defer|delay)$DELIMITER*backup(s?)$WORDBOUNDARY"
+	macro FileTypes_Doc            = "🌟•(odf|(doc|xls|mdb|ppt|txt)(x?))◀"
+	macro FileTypes_img_camera     = "🌟/DCIM/🌟|🌟•(dng|raw|nef|arw|cr2)◀"
+	macro FileTypes_img_edit       = "🌟•(psd|psb)◀"
+	macro FileTypes_img            = "🌟•(jp(e)?g|tif(f)?|png|bmp)◀"
+	macro FileTypes_archive        = "🌟•(zip|rar|7z(ip)?|gz(ip)?)◀"
+	macro FileTYpes_video_camera   = ""
+	macro FileTypes_Code           = "(🌟║bash║🌟)|(🌟•(sh|js|cmd|bat|c|cpp|cs|vbs)◀)"
+	macro special_Git              = ""
+
+	## Path-independent settings (can be overridden)
+	case-sensitive=no
+	symlinks=copy  ## follow|ignore|copy|recreate
+
+	## Default include/excludes
+	incl="🌟"
+	excl="🌟/(tmp|temp|lost+found)🙃"
+	excl="🌟/((•?Trash(-[0-9]+)?)|•Trashes|((\$)?recycle(r|ed)?(•bin)?))🙃"
+	excl="🌟/•_🌟"
+	excl="🌟/•_DS_Store"
+	excl="🌟/•Spotlight-V[0-9]+🙃"
+	excl="$VFSROOT/((pagefile|swapfile)(•sys)?\$|$VFSROOT/private/var/vm🙃)"
+	excl="$VFSROOT/(dev|proc)🙃" #............................................... Special filesystem folders that will cause problems.
+	excl="$VFSROOT/(var)🙃" #.................................................... Folders you probably wouldn't want to backup.
+
+	## Order of file copying (might want to do newer & smaller files first).
+	order-by_size                      = ascending #............................ asc|desc|off
+	order-by_size_step_multiplier       = 2 #.................................... Looks first at 0-1B groups, then 1-2B, 2-4B, 4-8B ... 1-2KiB 128-256MiB ... 32-64GiB, etc.
+	order-by_sizegroup_order_override  = 1,    min=100B,  max=10MiB #........... Anything size not specified by these, including smaller, bigger, or any in the middle, will be lumped together in specified size order after these (in this case, everything under 1mb, then between 1gb and 20gb)
+	order-by_sizegroup_order_override  = 2,               max=100MB #........... No min=also everything smaller than max (might want to scoop up tiny files later like this, as they probably aren't user data)
+	order-by_sizegroup_order_override  = 3,    min=100MB #...................... Everything bigger, or not otherwise included, done last
+	order-by_namegroup_regex=order     = fromtop,    1,    "$FileTypes_Doc" #... fromtop will be done first
+	order-by_namegroup_regex=order     = fromtop,    1.5,  "$FileTypes_Code"
+	order-by_namegroup_regex=order     = fromtop,    1.75, "$FileTypes_img_camera"
+	order-by_namegroup_regex=order     = fromtop,    2,    "$FileTypes_img_edit"
+	order-by_namegroup_regex=order     = fromtop,    2,    "$FileTypes_img"
+	order-by_namegroup_regex=order     = frombottom, 6,    "🌟║lossless║🌟" #..... frombottom will be done last
+	order-by_namegroup_regex=order     = frombottom, 5,    "🌟║intermediate║🌟"
+	order-by_namegroup_regex=order     = frombottom, 4,    "🌟║(vm|virtualbox|vmware|virtualization║🌟"
+	order-by_namegroup_regex=order     = frombottom, 3.5,  "🌟║(collection|movies)║🌟"
+	order-by_namegroup_regex=order     = frombottom, 2,    "$DEFERBACKUP"
+	order-by_namegroup_regex=order     = frombottom, 1,    "$DONTBACKUP"
+	order-by_date                      = descending #........................... Newest first
+	order-by_date_step_multiplier       = 10 #................................... Looks at first 0-10 seconds old, then 10-100s, then 1.7-16.7m, 16.7m-2.8h, 2.8h-1.2d, 1.2d-1.7w, 1.7w-7.1m, 7.1m-5.9y, 5.9y-60y, etc.
+	order-by_rule-order                = "sizegroup, sizestep, namegroup, dategroup"
+
+	## First top-level include
+	consider="/"
+		## Everything under this will actually be physically scanned for folder and filenames.
+		## Nothing is actually included.
+		## For backups, usually a good idea to start with "/", for any OS or filesystem.
+		## "/" must still be explicitly included, if desired.
+		## Windows drives must still be individually or regex included, if desired.
+		excl="/boot"  ## Good idea to exclude everything that will later have own its own "consider", unless using different rules later and want to include these.
+		incl="$VFSROOT/etc"
+			excl="regex to exclude stuff only from previous include"
+				incl="regex to override previous exclusion"
+		incl="$VALLUSERSHOME"
+			excl=""
+
+	consider="/boot"  ## Might be redundant with consider="/", if not excluded under that rule.
+		## Won't actually be physically scanned again, since consider="/" is an ancestor.
+		##     - Unless it's a symlink and symlinks were excluded in an ancestor scan, then it will be scanned.
+		incl="$ANYTHING"
+			symlinks=follow
+			excl="relative regex to parent incl"
+	```
